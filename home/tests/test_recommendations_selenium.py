@@ -11,7 +11,6 @@ import time
 class RecommendationSeleniumTest(StaticLiveServerTestCase):
 
     def setUp(self):
-        # Create two users for testing recommendation
         self.user1 = User.objects.create_user(
             username="samya", password="pass123", first_name="Samya", last_name="A"
         )
@@ -19,7 +18,6 @@ class RecommendationSeleniumTest(StaticLiveServerTestCase):
             username="udita", password="pass123", first_name="Udita", last_name="S"
         )
 
-        # Create profiles (gender must be 1 character: 'M' or 'F')
         profile.objects.create(
             user=self.user1, contact="9999999999", email="samya@test.com", year="1", gender="F"
         )
@@ -27,7 +25,6 @@ class RecommendationSeleniumTest(StaticLiveServerTestCase):
             user=self.user2, contact="8888888888", email="udita@test.com", year="1", gender="F"
         )
 
-        # Create BFI choices for both
         Student_choices.objects.create(
             student_id=self.user1, name="Samya Aggarwal", gender="F",
             Q1=4, Q2=3, Q3=5, Q4=2, Q5=4, Q6=2, Q7=5, Q8=2, Q9=4, Q10=3
@@ -37,11 +34,10 @@ class RecommendationSeleniumTest(StaticLiveServerTestCase):
             Q1=5, Q2=4, Q3=3, Q4=2, Q5=5, Q6=1, Q7=4, Q8=3, Q9=3, Q10=4
         )
 
-        # Selenium Chrome setup
-        chrome_path = r"C:\Users\Dell\OneDrive\Desktop\chromedriver-win64\chromedriver.exe"  # YOUR PATH
+        chrome_path = r"C:\Users\Dell\OneDrive\Desktop\chromedriver-win64\chromedriver.exe"  
 
         chrome_options = Options()
-        chrome_options.add_argument("--headless=new")   # run in headless mode
+        chrome_options.add_argument("--headless=new")   
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
 
@@ -52,7 +48,6 @@ class RecommendationSeleniumTest(StaticLiveServerTestCase):
         self.driver.quit()
 
     def test_recommendation_page_loads_matches(self):
-        # Login first using Selenium
         self.driver.get(f"{self.live_server_url}/login/")
 
         self.driver.find_element(By.NAME, "username").send_keys("samya")
@@ -63,12 +58,10 @@ class RecommendationSeleniumTest(StaticLiveServerTestCase):
 
         time.sleep(2)
 
-        # Once logged in, redirect to results page
         self.driver.get(f"{self.live_server_url}/results/")
 
         time.sleep(2)
 
         page_source = self.driver.page_source
 
-        # The recommended user "Udita Sharma" should appear
         self.assertIn("Udita Sharma", page_source)

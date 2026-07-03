@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncRoomies Premium</title>
+
+    <style>
+
+        body{
+            margin:0;
+            padding:0;
+            background:#ead7d1;
+            font-family:"EB Garamond", serif;
+            color:#001c55;
+        }
+
+        nav{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:20px 60px;
+            background:white;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .logo{
+            font-size:34px;
+            font-weight:bold;
+        }
+
+        .back{
+            text-decoration:none;
+            color:#001c55;
+            font-size:20px;
+            font-weight:600;
+        }
+
+        .hero{
+            text-align:center;
+            margin-top:60px;
+        }
+
+        .hero h1{
+            font-size:60px;
+            margin-bottom:10px;
+        }
+
+        .hero p{
+            font-size:22px;
+            width:700px;
+            margin:auto;
+            line-height:1.6;
+        }
+
+        .pricing-container{
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            gap:70px;
+            margin-top:70px;
+            flex-wrap:wrap;
+        }
+
+        .features{
+            width:500px;
+        }
+
+        .features h2{
+            font-size:40px;
+            margin-bottom:30px;
+        }
+
+        .feature{
+            background:white;
+            padding:18px 25px;
+            margin-bottom:18px;
+            border-radius:15px;
+            font-size:22px;
+            box-shadow:0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .card{
+            width:360px;
+            background:white;
+            border-radius:25px;
+            text-align:center;
+            padding:45px 30px;
+            box-shadow:0 15px 35px rgba(0,0,0,0.12);
+        }
+
+        .price{
+            font-size:70px;
+            font-weight:bold;
+            margin:10px 0;
+        }
+
+        .month{
+            font-size:22px;
+            color:#555;
+        }
+
+        .line{
+            margin:30px auto;
+            width:80%;
+            border-top:1px solid #ddd;
+        }
+
+        .plan{
+            font-size:22px;
+            margin-bottom:30px;
+            line-height:1.7;
+        }
+
+        #payBtn{
+
+            width:100%;
+            padding:18px;
+            border:none;
+            border-radius:40px;
+            background:#dd99bb;
+            color:#001c55;
+            font-size:24px;
+            font-weight:bold;
+            cursor:pointer;
+            transition:.3s;
+        }
+
+        #payBtn:hover{
+
+            transform:translateY(-3px);
+            box-shadow:0 10px 20px rgba(0,0,0,.15);
+
+        }
+
+        .footer{
+
+            text-align:center;
+            margin-top:80px;
+            margin-bottom:40px;
+            font-size:18px;
+            color:#444;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<nav>
+
+    <div class="logo">
+        SyncRoomies
+    </div>
+
+    <a href="/" class="back">
+        ← Back Home
+    </a>
+
+</nav>
+
+<section class="hero">
+
+    <h1>⭐ SyncRoomies Premium</h1>
+
+    <p>
+        Upgrade your roommate search experience and discover your
+        ideal roommate faster with premium features.
+    </p>
+
+</section>
+
+
+<div class="pricing-container">
+
+    <div class="features">
+
+        <h2>Premium Benefits</h2>
+
+        <div class="feature">
+            ✅ Unlimited Roommate Recommendations
+        </div>
+
+        <div class="feature">
+            ✅ Advanced Compatibility Filters
+        </div>
+
+        <div class="feature">
+            ✅ Priority Profile Visibility
+        </div>
+
+        <div class="feature">
+            ✅ Premium Badge
+        </div>
+
+        <div class="feature">
+            ✅ Early Access to New Features
+        </div>
+
+        <div class="feature">
+            ✅ Priority Support
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Premium Plan</h2>
+
+        <div class="price">
+            ₹99
+        </div>
+
+        <div class="month">
+            One Time Purchase
+        </div>
+
+        <div class="line"></div>
+
+        <div class="plan">
+
+            Unlock every premium feature with a single payment.
+
+        </div>
+
+        <button id="payBtn">
+
+            Upgrade to Premium
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="footer">
+
+    Secure payments powered by Razorpay 🔒
+
+</div>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+
+const payBtn = document.getElementById("payBtn");
+
+payBtn.addEventListener("click", buyPremium);
+
+async function buyPremium() {
+
+    try {
+
+        const response = await fetch("/payments/create-order/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            }
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            alert("Unable to create order.");
+            return;
+        }
+
+        openRazorpay(data);
+
+    }
+    catch(error){
+        console.log(error);
+        alert("Something went wrong.");
+    }
+
+}
+
+function openRazorpay(data){
+
+    const options = {
+
+        key: data.key,
+
+        amount: data.amount,
+
+        currency: data.currency,
+
+        name: "SyncRoomies",
+
+        description: "Premium Membership",
+
+        order_id: data.order_id,
+
+        handler: async function (response) {
+
+    console.log(response);
+
+    try {
+
+        const verifyResponse = await fetch("/payments/verify/", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+
+            body: JSON.stringify({
+
+                razorpay_payment_id: response.razorpay_payment_id,
+
+                razorpay_order_id: response.razorpay_order_id,
+
+                razorpay_signature: response.razorpay_signature
+
+            })
+
+        });
+
+        const result = await verifyResponse.json();
+
+        console.log(result);
+
+        if(result.success){
+            window.location.href="/payments/success/";
+        }
+        else{
+            alert("Payment Verification Failed!");
+        }
+
+    }
+    catch(error){
+
+        console.log(error);
+        alert("Verification Error");
+
+    }
+
+},
+
+        theme: {
+
+            color:"#001c55"
+
+        }
+
+    };
+
+    const rzp = new Razorpay(options);
+
+    rzp.open();
+
+}
+
+function getCookie(name) {
+
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== '') {
+
+        const cookies = document.cookie.split(';');
+
+        for (let i = 0; i < cookies.length; i++) {
+
+            const cookie = cookies[i].trim();
+
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+
+                break;
+
+            }
+
+        }
+
+    }
+
+    return cookieValue;
+
+}
+
+</script>
+
+</body>
+</html>

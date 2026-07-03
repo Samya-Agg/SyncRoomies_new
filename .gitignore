@@ -3,3 +3,32 @@
 __pycache__/
 .env
 hackathon/*.pyc
+venv/
+venv
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.env
+
+# macOS
+.DS_Store
+
+# SQLite
+db.sqlite3
+
+# Static files
+staticfiles/
+
+# Media uploads
+media/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log

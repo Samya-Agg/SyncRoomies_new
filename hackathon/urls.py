@@ -12,6 +12,7 @@ urlpatterns = [
     # Home
     path('', views.homepage, name="homepage"),
     path('home/', views.index1, name="student_home"),
+    path("payments/", include("payments.urls")),
 
     # Auth
     path('login/', views.login_page, name="login_page"),

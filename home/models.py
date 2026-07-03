@@ -28,6 +28,7 @@ class profile(models.Model):
         ('F', 'Female'),
     ]
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES,null=False,default='M')
+    is_premium = models.BooleanField(default=False)
 
 
 

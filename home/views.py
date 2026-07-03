@@ -218,7 +218,13 @@ def results_new(request):
     X_scaled = scaler.fit_transform(df)
     target_scaled = scaler.transform(target_vec)
 
-    k = min(5, len(df))
+    profile = Profile.objects.get(user=user)
+
+    if profile.is_premium:
+        k = min(10, len(df))
+    else:
+        k = min(3, len(df))
+        
     knn = NearestNeighbors(n_neighbors=k)
     knn.fit(X_scaled)
     distances, indices = knn.kneighbors(target_scaled)
@@ -228,7 +234,9 @@ def results_new(request):
         match_user = Student_choices.objects.get(student_id=ids[idx])
 
         distance = float(dist)
-        compatibility = max(0, 100 - (distance * 20))
+        similarity = 1 / (1 + distance)  
+        compatibility = round(similarity * 100, 2)
+
 
         matches.append({
             "name": match_user.name,

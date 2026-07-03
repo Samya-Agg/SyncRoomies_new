@@ -834,6 +834,13 @@
                 <ul class="nav-links">
                     <li><a href="#mission">About</a></li>
                     <li><a href="{% url 'login_page' %}">Login</a></li>
+                    <li><a href="{% url 'premium' %}">
+                        {% if request.user.subscription.plan == "PREMIUM" %}
+                            👑 Premium
+                        {% else %}
+                            ⭐ Upgrade
+                        {% endif %}
+                    </a></li>
                 </ul>
             </nav>
         </div>

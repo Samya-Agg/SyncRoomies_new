@@ -14,7 +14,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
+
+
 load_dotenv()
+
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,10 +29,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u%28q#75)3%7p&232h1trd88^ik^m&%3bxv$c$=0k*!f3m*0km'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
+
 
 ALLOWED_HOSTS = ['*']
 
@@ -44,12 +50,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     'home',
-    'chat'
+    'chat',
+    'payments'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -101,18 +107,6 @@ DATABASES = {
         'PORT': os.getenv("DB_PORT"),
     }
 }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'SyncRoomies',         # RDS database name
-#         'USER': 'mysuperuser',         # RDS master username
-#         'PASSWORD': 'swassam1625', # RDS master password
-#         'HOST': 'syncroomies.c1i6uk6smoyr.eu-north-1.rds.amazonaws.com',  # RDS endpoint (WITHOUT https://)
-#         'PORT': '5432',
-#     }
-# }
-
-
 
 
 # Password validation
