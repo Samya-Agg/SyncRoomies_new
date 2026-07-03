@@ -60,3 +60,5 @@ pycparser==2.22
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 six==1.17.0
+
+djangorestframework==3.15.2
