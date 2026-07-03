@@ -35,7 +35,18 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 
-ALLOWED_HOSTS = [".onrender.com",]
+ALLOWED_HOSTS = [
+    ".onrender.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://syncroomies-new.onrender.com",
+]
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 
 # Application definition

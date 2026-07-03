@@ -154,7 +154,7 @@ form input:focus {
     {% endif %}
 
     <!-- Login Form -->
-    <form method="POST" action="/login/">
+    <form method="POST" action="{% url 'login_page' %}">
         {% csrf_token %}
 
         <input type="text" name="username" placeholder="Username" required>

@@ -145,7 +145,7 @@ form input:focus {
     <div class="title">Registration</div>
 
     <!-- Registration Form -->
-    <form method="post" action="/register/">
+    <form method="POST" action="{% url 'register_page' %}">
         {% csrf_token %}
 
         {% if messages %}
