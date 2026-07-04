@@ -27,12 +27,48 @@ def premium(request):
 @require_POST
 def razorpay_webhook(request):
 
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    print("WEBHOOK REACHED")
-    print("Method:", request.method)
-    print("Headers:", dict(request.headers))
-    print("Body:", request.body)
-    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+    print("=" * 70)
+    print("WEBHOOK HIT")
+
+    webhook_signature = request.headers.get("X-Razorpay-Signature")
+
+    print("Signature:", webhook_signature)
+    print("Secret:", repr(settings.RAZORPAY_WEBHOOK_SECRET))
+    print("Secret Length:", len(settings.RAZORPAY_WEBHOOK_SECRET))
+    print("Body Type:", type(request.body))
+    print("Body Length:", len(request.body))
+    print("Body Preview:", repr(request.body[:100]))
+
+    client = razorpay.Client(
+        auth=(
+            settings.RAZORPAY_KEY_ID,
+            settings.RAZORPAY_KEY_SECRET
+        )
+    )
+
+    try:
+        client.utility.verify_webhook_signature(
+            request.body,
+            webhook_signature,
+            settings.RAZORPAY_WEBHOOK_SECRET,
+        )
+
+        print("Webhook VERIFIED")
+
+    except Exception as e:
+
+        print("Verification FAILED")
+        print(type(e))
+        print(e)
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=400
+        )
+
+    payload = json.loads(request.body)
+
+    print("Event:", payload.get("event"))
 
     return JsonResponse({"status": "ok"})
 # ---------------------------------------------------
