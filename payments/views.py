@@ -21,7 +21,15 @@ def premium(request):
 @require_POST
 def razorpay_webhook(request):
 
+    print("=" * 60)
+    print("WEBHOOK HIT")
+
+    print("Headers:", dict(request.headers))
+
     webhook_signature = request.headers.get("X-Razorpay-Signature")
+
+    print("Signature:", webhook_signature)
+    print("Webhook Secret:", settings.RAZORPAY_WEBHOOK_SECRET)
 
     client = razorpay.Client(
         auth=(
@@ -31,16 +39,22 @@ def razorpay_webhook(request):
     )
 
     try:
+
         client.utility.verify_webhook_signature(
             request.body,
             webhook_signature,
             settings.RAZORPAY_WEBHOOK_SECRET
         )
 
+        print("Signature VERIFIED")
+
     except Exception as e:
-        print("Webhook Signature Error:", e)
+
+        print("Verification FAILED")
+        print(e)
+
         return JsonResponse(
-            {"error": "Invalid webhook signature"},
+            {"error": str(e)},
             status=400
         )
 
@@ -48,13 +62,19 @@ def razorpay_webhook(request):
 
     event = payload.get("event")
 
+    print("Event:", event)
+
     if event != "payment.captured":
+        print("Ignored event")
         return JsonResponse({"status": "ignored"})
 
     payment_entity = payload["payload"]["payment"]["entity"]
 
     razorpay_payment_id = payment_entity["id"]
     razorpay_order_id = payment_entity["order_id"]
+
+    print("Payment ID:", razorpay_payment_id)
+    print("Order ID:", razorpay_order_id)
 
     try:
 
@@ -64,6 +84,8 @@ def razorpay_webhook(request):
 
     except Payment.DoesNotExist:
 
+        print("Payment not found in database")
+
         return JsonResponse(
             {"status": "payment not found"},
             status=404
@@ -71,6 +93,9 @@ def razorpay_webhook(request):
 
     # Idempotency
     if payment.status == "SUCCESS":
+
+        print("Payment already processed")
+
         return JsonResponse(
             {"status": "already processed"}
         )
@@ -85,6 +110,8 @@ def razorpay_webhook(request):
 
     user_profile.is_premium = True
     user_profile.save()
+
+    print("Webhook processed successfully")
 
     return JsonResponse({"status": "ok"})
 
@@ -156,11 +183,9 @@ def verify_payment(request):
         )
 
         client.utility.verify_payment_signature({
-
             "razorpay_order_id": razorpay_order_id,
             "razorpay_payment_id": razorpay_payment_id,
             "razorpay_signature": razorpay_signature,
-
         })
 
         payment = Payment.objects.get(
@@ -169,6 +194,7 @@ def verify_payment(request):
 
         # Idempotency
         if payment.status == "SUCCESS":
+
             return JsonResponse({
                 "success": True,
                 "message": "Already verified"
