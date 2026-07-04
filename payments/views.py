@@ -27,89 +27,14 @@ def premium(request):
 @require_POST
 def razorpay_webhook(request):
 
-    print("=" * 70)
-    print("WEBHOOK HIT")
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    print("WEBHOOK REACHED")
+    print("Method:", request.method)
+    print("Headers:", dict(request.headers))
+    print("Body:", request.body)
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 
-    webhook_signature = request.headers.get("X-Razorpay-Signature")
-
-    print("Signature :", webhook_signature)
-    print("Secret    :", settings.RAZORPAY_WEBHOOK_SECRET)
-
-    # ---------- Manual Signature Verification ----------
-
-    generated_signature = hmac.new(
-        settings.RAZORPAY_WEBHOOK_SECRET.encode(),
-        request.body,
-        hashlib.sha256
-    ).hexdigest()
-
-    print("Generated :", generated_signature)
-
-    if not hmac.compare_digest(generated_signature, webhook_signature):
-        print("Invalid Signature")
-        return JsonResponse(
-            {"error": "Invalid Webhook Signature"},
-            status=400
-        )
-
-    print("Webhook VERIFIED")
-
-    payload = json.loads(request.body)
-
-    event = payload.get("event")
-
-    print("Event :", event)
-
-    # Ignore everything except captured payments
-    if event != "payment.captured":
-        print("Ignored Event")
-        return JsonResponse({"status": "ignored"})
-
-    payment_entity = payload["payload"]["payment"]["entity"]
-
-    razorpay_payment_id = payment_entity["id"]
-    razorpay_order_id = payment_entity["order_id"]
-
-    try:
-
-        payment = Payment.objects.get(
-            razorpay_order_id=razorpay_order_id
-        )
-
-    except Payment.DoesNotExist:
-
-        print("Payment not found")
-
-        return JsonResponse(
-            {"status": "payment not found"},
-            status=404
-        )
-
-    # ---------------- Idempotency ----------------
-
-    if payment.status == "SUCCESS":
-        print("Already processed")
-
-        return JsonResponse({
-            "status": "already processed"
-        })
-
-    payment.status = "SUCCESS"
-    payment.razorpay_payment_id = razorpay_payment_id
-    payment.save()
-
-    user_profile, created = Profile.objects.get_or_create(
-        user=payment.user
-    )
-
-    user_profile.is_premium = True
-    user_profile.save()
-
-    print("Premium Activated")
-
-    return JsonResponse({"status": "success"})
-
-
+    return JsonResponse({"status": "ok"})
 # ---------------------------------------------------
 # SUCCESS PAGE
 # ---------------------------------------------------
