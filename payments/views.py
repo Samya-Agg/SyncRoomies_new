@@ -28,6 +28,11 @@ def razorpay_webhook(request):
 
     webhook_signature = request.headers.get("X-Razorpay-Signature")
 
+    print("Webhook Secret:", repr(settings.RAZORPAY_WEBHOOK_SECRET))
+    print("Signature:", repr(webhook_signature))
+    print("Body:", request.body.decode("utf-8"))
+
+
     print("Signature:", webhook_signature)
     print("Webhook Secret:", settings.RAZORPAY_WEBHOOK_SECRET)
 
