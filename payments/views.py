@@ -6,6 +6,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 import json
+import hmac
+import hashlib
 import razorpay
 
 from home.models import profile as Profile
@@ -17,69 +19,56 @@ def premium(request):
     return render(request, "premium.html")
 
 
+# ---------------------------------------------------
+# WEBHOOK
+# ---------------------------------------------------
+
 @csrf_exempt
 @require_POST
 def razorpay_webhook(request):
 
-    print("=" * 60)
+    print("=" * 70)
     print("WEBHOOK HIT")
-
-    print("Headers:", dict(request.headers))
 
     webhook_signature = request.headers.get("X-Razorpay-Signature")
 
-    print("Webhook Secret:", repr(settings.RAZORPAY_WEBHOOK_SECRET))
-    print("Signature:", repr(webhook_signature))
-    print("Body:", request.body.decode("utf-8"))
+    print("Signature :", webhook_signature)
+    print("Secret    :", settings.RAZORPAY_WEBHOOK_SECRET)
 
+    # ---------- Manual Signature Verification ----------
 
-    print("Signature:", webhook_signature)
-    print("Webhook Secret:", settings.RAZORPAY_WEBHOOK_SECRET)
+    generated_signature = hmac.new(
+        settings.RAZORPAY_WEBHOOK_SECRET.encode(),
+        request.body,
+        hashlib.sha256
+    ).hexdigest()
 
-    client = razorpay.Client(
-        auth=(
-            settings.RAZORPAY_KEY_ID,
-            settings.RAZORPAY_KEY_SECRET
-        )
-    )
+    print("Generated :", generated_signature)
 
-    try:
-
-        client.utility.verify_webhook_signature(
-            request.body,
-            webhook_signature,
-            settings.RAZORPAY_WEBHOOK_SECRET
-        )
-
-        print("Signature VERIFIED")
-
-    except Exception as e:
-
-        print("Verification FAILED")
-        print(e)
-
+    if not hmac.compare_digest(generated_signature, webhook_signature):
+        print("Invalid Signature")
         return JsonResponse(
-            {"error": str(e)},
+            {"error": "Invalid Webhook Signature"},
             status=400
         )
+
+    print("Webhook VERIFIED")
 
     payload = json.loads(request.body)
 
     event = payload.get("event")
 
-    print("Event:", event)
+    print("Event :", event)
 
+    # Ignore everything except captured payments
     if event != "payment.captured":
-        print("Ignored event")
+        print("Ignored Event")
         return JsonResponse({"status": "ignored"})
 
     payment_entity = payload["payload"]["payment"]["entity"]
 
     razorpay_payment_id = payment_entity["id"]
     razorpay_order_id = payment_entity["order_id"]
-
-    print("Payment ID:", razorpay_payment_id)
-    print("Order ID:", razorpay_order_id)
 
     try:
 
@@ -89,21 +78,21 @@ def razorpay_webhook(request):
 
     except Payment.DoesNotExist:
 
-        print("Payment not found in database")
+        print("Payment not found")
 
         return JsonResponse(
             {"status": "payment not found"},
             status=404
         )
 
-    # Idempotency
+    # ---------------- Idempotency ----------------
+
     if payment.status == "SUCCESS":
+        print("Already processed")
 
-        print("Payment already processed")
-
-        return JsonResponse(
-            {"status": "already processed"}
-        )
+        return JsonResponse({
+            "status": "already processed"
+        })
 
     payment.status = "SUCCESS"
     payment.razorpay_payment_id = razorpay_payment_id
@@ -116,14 +105,22 @@ def razorpay_webhook(request):
     user_profile.is_premium = True
     user_profile.save()
 
-    print("Webhook processed successfully")
+    print("Premium Activated")
 
-    return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "success"})
 
+
+# ---------------------------------------------------
+# SUCCESS PAGE
+# ---------------------------------------------------
 
 def payment_success(request):
     return render(request, "success.html")
 
+
+# ---------------------------------------------------
+# CREATE ORDER
+# ---------------------------------------------------
 
 @csrf_exempt
 @login_required
@@ -167,6 +164,10 @@ def create_order(request):
         }, status=400)
 
 
+# ---------------------------------------------------
+# VERIFY PAYMENT (Frontend Verification)
+# ---------------------------------------------------
+
 @csrf_exempt
 @login_required
 @require_POST
@@ -188,9 +189,11 @@ def verify_payment(request):
         )
 
         client.utility.verify_payment_signature({
+
             "razorpay_order_id": razorpay_order_id,
             "razorpay_payment_id": razorpay_payment_id,
-            "razorpay_signature": razorpay_signature,
+            "razorpay_signature": razorpay_signature
+
         })
 
         payment = Payment.objects.get(
@@ -202,7 +205,7 @@ def verify_payment(request):
 
             return JsonResponse({
                 "success": True,
-                "message": "Already verified"
+                "message": "Already Verified"
             })
 
         payment.status = "SUCCESS"
@@ -223,7 +226,7 @@ def verify_payment(request):
 
     except Exception as e:
 
-        print("Payment Verification Error:", e)
+        print("Verification Error:", e)
 
         return JsonResponse({
             "success": False,
