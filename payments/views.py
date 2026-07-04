@@ -108,6 +108,7 @@ def razorpay_webhook(request):
         f"Webhook processed successfully for Order {razorpay_order_id}"
     )
 
+    print("Webhook processed successfully")
     return JsonResponse(
         {"status": "success"}
     )
