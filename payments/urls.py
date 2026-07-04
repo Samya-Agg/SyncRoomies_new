@@ -15,9 +15,6 @@ urlpatterns = [
     views.payment_success,
     name="payment-success"
 ),
-    path(
-    "webhook/",
-    views.razorpay_webhook,
-    name="razorpay-webhook"
-),
+    path("webhook/", views.razorpay_webhook),
+
 ]

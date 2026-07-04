@@ -16,18 +16,82 @@ from .services.razorpay_service import RazorpayService
 def premium(request):
     return render(request, "premium.html")
 
+
 @csrf_exempt
 @require_POST
 def razorpay_webhook(request):
 
-    print(request.body)
+    webhook_signature = request.headers.get("X-Razorpay-Signature")
 
-    return JsonResponse({
-        "status": "received"
-    })
+    client = razorpay.Client(
+        auth=(
+            settings.RAZORPAY_KEY_ID,
+            settings.RAZORPAY_KEY_SECRET
+        )
+    )
+
+    try:
+        client.utility.verify_webhook_signature(
+            request.body,
+            webhook_signature,
+            settings.RAZORPAY_WEBHOOK_SECRET
+        )
+
+    except Exception as e:
+        print("Webhook Signature Error:", e)
+        return JsonResponse(
+            {"error": "Invalid webhook signature"},
+            status=400
+        )
+
+    payload = json.loads(request.body)
+
+    event = payload.get("event")
+
+    if event != "payment.captured":
+        return JsonResponse({"status": "ignored"})
+
+    payment_entity = payload["payload"]["payment"]["entity"]
+
+    razorpay_payment_id = payment_entity["id"]
+    razorpay_order_id = payment_entity["order_id"]
+
+    try:
+
+        payment = Payment.objects.get(
+            razorpay_order_id=razorpay_order_id
+        )
+
+    except Payment.DoesNotExist:
+
+        return JsonResponse(
+            {"status": "payment not found"},
+            status=404
+        )
+
+    # Idempotency
+    if payment.status == "SUCCESS":
+        return JsonResponse(
+            {"status": "already processed"}
+        )
+
+    payment.status = "SUCCESS"
+    payment.razorpay_payment_id = razorpay_payment_id
+    payment.save()
+
+    user_profile, created = Profile.objects.get_or_create(
+        user=payment.user
+    )
+
+    user_profile.is_premium = True
+    user_profile.save()
+
+    return JsonResponse({"status": "ok"})
+
 
 def payment_success(request):
     return render(request, "success.html")
+
 
 @csrf_exempt
 @login_required
@@ -47,7 +111,6 @@ def create_order(request):
 
         service = RazorpayService()
 
-        # Create Razorpay Order ONLY ONCE
         order = service.create_order(PREMIUM_PRICE)
 
         payment.razorpay_order_id = order["id"]
@@ -104,11 +167,18 @@ def verify_payment(request):
             razorpay_order_id=razorpay_order_id
         )
 
+        # Idempotency
+        if payment.status == "SUCCESS":
+            return JsonResponse({
+                "success": True,
+                "message": "Already verified"
+            })
+
         payment.status = "SUCCESS"
         payment.razorpay_payment_id = razorpay_payment_id
         payment.save()
 
-        user_profile = Profile.objects.get(
+        user_profile, created = Profile.objects.get_or_create(
             user=payment.user
         )
 
@@ -122,7 +192,7 @@ def verify_payment(request):
 
     except Exception as e:
 
-        print(e)
+        print("Payment Verification Error:", e)
 
         return JsonResponse({
             "success": False,
