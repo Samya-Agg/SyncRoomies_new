@@ -15,64 +15,37 @@ from .models import Payment
 from .services.razorpay_service import RazorpayService
 
 
+# ---------------------------------------------------
+# PREMIUM PAGE
+# ---------------------------------------------------
+
 def premium(request):
     return render(request, "premium.html")
 
 
 # ---------------------------------------------------
-# WEBHOOK
+# RAZORPAY WEBHOOK
 # ---------------------------------------------------
 
 @csrf_exempt
 @require_POST
 def razorpay_webhook(request):
 
-    print("=" * 70)
-    print("WEBHOOK HIT")
-
     webhook_signature = request.headers.get("X-Razorpay-Signature")
-    body = request.body.decode("utf-8")
 
-    print("Received Signature :", webhook_signature)
-    print("Webhook Secret     :", repr(settings.RAZORPAY_WEBHOOK_SECRET))
-    print("Body Type          :", type(body))
-    print("Body Length        :", len(body))
+    body = request.body.decode("utf-8")
 
     generated_signature = hmac.new(
         settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
         body.encode("utf-8"),
-        hashlib.sha256,
+        hashlib.sha256
     ).hexdigest()
 
-    print("Generated Signature:", generated_signature)
-
-    client = razorpay.Client(
-        auth=(
-            settings.RAZORPAY_KEY_ID,
-            settings.RAZORPAY_KEY_SECRET
-        )
-    )
-
-    try:
-
-        client.utility.verify_webhook_signature(
-            body,
-            webhook_signature,
-            settings.RAZORPAY_WEBHOOK_SECRET
-        )
-
-        print("Webhook VERIFIED")
-
-    except Exception as e:
-
-        print("Verification FAILED")
-        print(type(e))
-        print(e)
-
+    if not hmac.compare_digest(generated_signature, webhook_signature):
         return JsonResponse(
             {
                 "success": False,
-                "error": str(e)
+                "error": "Invalid webhook signature"
             },
             status=400
         )
@@ -81,8 +54,7 @@ def razorpay_webhook(request):
 
     event = payload.get("event")
 
-    print("Event:", event)
-
+    # Ignore unrelated events
     if event != "payment.captured":
         return JsonResponse({"status": "ignored"})
 
@@ -92,24 +64,22 @@ def razorpay_webhook(request):
     razorpay_order_id = payment_entity["order_id"]
 
     try:
+
         payment = Payment.objects.get(
             razorpay_order_id=razorpay_order_id
         )
 
     except Payment.DoesNotExist:
 
-        print("Payment not found")
-
         return JsonResponse(
             {"status": "payment not found"},
             status=404
         )
 
-    # Idempotency
+    # -----------------------------
+    # IDEMPOTENCY
+    # -----------------------------
     if payment.status == "SUCCESS":
-
-        print("Already processed")
-
         return JsonResponse(
             {"status": "already processed"}
         )
@@ -118,16 +88,15 @@ def razorpay_webhook(request):
     payment.razorpay_payment_id = razorpay_payment_id
     payment.save()
 
-    user_profile, _ = Profile.objects.get_or_create(
+    profile, _ = Profile.objects.get_or_create(
         user=payment.user
     )
 
-    user_profile.is_premium = True
-    user_profile.save()
-
-    print("Payment Updated Successfully")
+    profile.is_premium = True
+    profile.save()
 
     return JsonResponse({"status": "ok"})
+
 
 # ---------------------------------------------------
 # SUCCESS PAGE
@@ -184,7 +153,7 @@ def create_order(request):
 
 
 # ---------------------------------------------------
-# VERIFY PAYMENT (Frontend Verification)
+# VERIFY PAYMENT (Frontend)
 # ---------------------------------------------------
 
 @csrf_exempt
@@ -219,7 +188,9 @@ def verify_payment(request):
             razorpay_order_id=razorpay_order_id
         )
 
-        # Idempotency
+        # -----------------------------
+        # IDEMPOTENCY
+        # -----------------------------
         if payment.status == "SUCCESS":
 
             return JsonResponse({
@@ -231,12 +202,12 @@ def verify_payment(request):
         payment.razorpay_payment_id = razorpay_payment_id
         payment.save()
 
-        user_profile, created = Profile.objects.get_or_create(
+        profile, _ = Profile.objects.get_or_create(
             user=payment.user
         )
 
-        user_profile.is_premium = True
-        user_profile.save()
+        profile.is_premium = True
+        profile.save()
 
         return JsonResponse({
             "success": True,
@@ -245,7 +216,7 @@ def verify_payment(request):
 
     except Exception as e:
 
-        print("Verification Error:", e)
+        print(e)
 
         return JsonResponse({
             "success": False,
